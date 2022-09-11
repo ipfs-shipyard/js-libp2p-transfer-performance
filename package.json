@@ -1,0 +1,17 @@
+{
+  "name": "js-libp2p-transfer-performance",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "reset": "rm -rf versions/*/node_modules versions/*/package-lock.json node_modules package-lock.json",
+    "start": "node index.js"
+  },
+  "workspaces": [
+    "./versions/*"
+  ],
+  "dependencies": {
+    "p-timeout": "^6.0.0"
+  }
+}
