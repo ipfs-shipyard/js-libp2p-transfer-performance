@@ -10,9 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "libp2p": "^0.37.0",
     "@libp2p/mplex": "^1.0.4",
     "@libp2p/tcp": "^1.0.9",
-    "p-defer": "^4.0.0"
+    "libp2p": "^0.37.0"
   }
 }

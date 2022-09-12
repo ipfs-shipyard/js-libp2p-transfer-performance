@@ -12,6 +12,8 @@
     "./versions/*"
   ],
   "dependencies": {
+    "defer": "^1.0.0",
+    "execa": "^6.1.0",
     "p-timeout": "^6.0.0"
   }
 }

@@ -1,17 +1,10 @@
 {
   "name": "0.36.x",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "type": "module",
   "dependencies": {
     "libp2p": "^0.36.0",
     "libp2p-mplex": "^0.10.7",
-    "libp2p-tcp": "^0.17.2",
-    "p-defer": "^3.0.0"
+    "libp2p-tcp": "^0.17.2"
   }
 }

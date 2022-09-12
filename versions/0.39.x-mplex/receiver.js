@@ -1,21 +1,25 @@
 #!/usr/bin/env node
 
-import libp2p from 'libp2p'
-import Insecure from 'libp2p/src/insecure/plaintext.js'
-import Mplex from 'libp2p-mplex'
-import TCP from 'libp2p-tcp'
+import { createLibp2p } from 'libp2p'
+import { Plaintext } from 'libp2p/insecure'
+import { Mplex } from '@libp2p/mplex'
+import { TCP } from '@libp2p/tcp'
 
 const toReceive = Number(process.env.DATA_LENGTH)
 
-const node = await libp2p.create({
+const node = await createLibp2p({
   addresses: {
     listen: ['/ip4/127.0.0.1/tcp/0'],
   },
-  modules: {
-    transport: [TCP],
-    streamMuxer: [Mplex],
-    connEncryption: [Insecure]
-  }
+  transports: [
+    new TCP()
+  ],
+  streamMuxers: [
+    new Mplex()
+  ],
+  connectionEncryption: [
+    new Plaintext()
+  ]
 })
 
 await node.start()
@@ -26,7 +30,7 @@ await node.handle(process.env.PROTOCOL, async ({ stream }) => {
   const start = Date.now()
 
   for await (const buf of stream.source) {
-    received += buf.length
+    received += buf.byteLength
 
     if (received >= toReceive) {
       process.stdout.write(`${Date.now() - start}`)
@@ -35,4 +39,4 @@ await node.handle(process.env.PROTOCOL, async ({ stream }) => {
   }
 })
 
-console.info(`${node.multiaddrs[0]}/p2p/${node.peerId}`)
+console.info(`${node.getMultiaddrs()[0]}`)

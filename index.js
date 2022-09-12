@@ -1,83 +1,105 @@
 import fs from 'fs'
-import thirtySix from './versions/0.36.x/index.js'
-import thirtySeven from './versions/0.37.x/index.js'
-import thirtyEight from './versions/0.38.x/index.js'
-import thirtyNineYamux from './versions/0.39.x-yamux/index.js'
-import thirtyNineMplex from './versions/0.39.x-mplex/index.js'
+import { execa } from 'execa'
 import timeout from 'p-timeout'
+import defer from 'p-defer'
 
+const PROTOCOL = '/transfer-test/1.0.0'
 const TEST_TIMEOUT = Number(process.env.TIMEOUT || 30000)
-const count = 1000 // how many messages to send
-const chunkSizes = [
-  Math.pow(2, 2), // 4B
-  Math.pow(2, 4), // 16B
-  Math.pow(2, 6), // 64B
-  Math.pow(2, 8), // 256B
-  Math.pow(2, 16), // 64KB
-  Math.pow(2, 18), // 256KB
-  Math.pow(2, 20) // 1MB
+const dataLength = Number(process.env.DATA_LENGTH || (Math.pow(2, 20) * 100)) // how much data to send
+const chunkSizes = [ // chunk sizes for data
+  Math.pow(2, 10), // 1 KiB
+  Math.pow(2, 16), // 64 KiB
+  Math.pow(2, 17), // 128 KiB
+  Math.pow(2, 18), // 256 KiB
+  Math.pow(2, 20), // 1 MiB
+  Math.pow(2, 20) * 2, // 2 MiB
+  Math.pow(2, 20) * 10 // 10 MiB
 ]
 
-const versions = {
-  '0.36.x': thirtySix,
-  '0.37.x': thirtySeven,
-  '0.38.x': thirtyEight,
-  '0.39.x-mplex': thirtyNineMplex,
-  '0.39.x-yamux': thirtyNineYamux
-}
+const versions = [
+  '0.36.x',
+  '0.37.x',
+  '0.38.x',
+  '0.39.x-mplex',
+  '0.39.x-yamux'
+]
 
 const results = {}
 
-for (const [version, impl] of Object.entries(versions)) {
+for (const version of versions) {
+  console.info(`testing ${version}`)
+
   for (let i = 0; i < chunkSizes.length; i++) {
-    await impl.setUp()
-
     const chunkSize = chunkSizes[i]
-    const data = new Uint8Array(chunkSize)
-    let sendingTimes = []
-    let receivingTimes = []
-
     results[chunkSize] = results[chunkSize] || []
 
+    let receiver
+    let sender
+
     try {
-      await timeout(impl.runTest(count, data, sendingTimes, receivingTimes), {
+      let multiaddr
+      const multiaddrPromise = defer()
+      let time
+
+      receiver = execa('node', [`./versions/${version}/receiver.js`], {
+        env: {
+          DATA_LENGTH: dataLength,
+          PROTOCOL
+        }
+      })
+      receiver.stdout.on('data', (buf) => {
+        if (!multiaddr) {
+          multiaddrPromise.resolve(buf.toString().trim())
+        } else {
+          time = Number(buf.toString())
+        }
+      })
+      receiver.stderr.on('data', (buf) => {
+        console.error('receiver', buf.toString().trim())
+      })
+
+      multiaddr = await timeout(multiaddrPromise.promise, {
         milliseconds: TEST_TIMEOUT
       })
 
-      sendingTimes = sendingTimes.sort()
-      receivingTimes = receivingTimes.sort()
-
-      if (sendingTimes.length !== count) {
-        throw new Error('Did not send all messages')
-      }
-
-      if (receivingTimes.length !== count) {
-        throw new Error('Did not receive all messages')
-      }
-
-      const times = sendingTimes.map((val, index) => {
-        return receivingTimes[index] - val
+      sender = execa('node', [`./versions/${version}/sender.js`], {
+        env: {
+          DATA_LENGTH: dataLength,
+          CHUNK_SIZE: chunkSize,
+          RECEIVER_MULTIADDR: multiaddr,
+          PROTOCOL
+        }
       })
 
-      const avg = Math.round(
-        times.reduce((acc, curr) => acc + curr, 0) / times.length
-      )
+      sender.stderr.on('data', (buf) => {
+        console.error('sender', buf.toString().trim())
+      })
 
-      results[chunkSize].push(avg)
+      await timeout(receiver, {
+        milliseconds: TEST_TIMEOUT
+      })
 
-      console.info(`${version}, ${chunkSize}, ${avg}`)
+      results[chunkSize].push(time)
+
+      console.info(`${dataLength}b in ${chunkSize}b chunks in ${time}ms`)
     } catch (err) {
-      results[chunkSize].push(0)
+      results[chunkSize].push('')
 
       console.info(`${version}, ${chunkSize},`, err.message)
-    }
+    } finally {
+      if (receiver != null) {
+        receiver.kill()
+      }
 
-    await impl.tearDown()
+      if (sender != null) {
+        sender.kill()
+      }
+    }
   }
 }
 
 const csvData = [
-  [ 'bytes', ...Object.keys(versions) ].join(', ')
+  [ 'chunk size (b)', ...versions ].join(', ')
 ]
 
 Object.entries(results).forEach(([chunkSize, averages]) => {

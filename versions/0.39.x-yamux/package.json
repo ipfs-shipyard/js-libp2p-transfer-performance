@@ -12,7 +12,6 @@
   "dependencies": {
     "@chainsafe/libp2p-yamux": "^1.0.0",
     "@libp2p/tcp": "^3.0.6",
-    "libp2p": "^0.39.0",
-    "p-defer": "^4.0.0"
+    "libp2p": "^0.39.0"
   }
 }
