@@ -11,9 +11,14 @@ $ git clone git@github.com:ipfs-shipyard/js-libp2p-transfer-performance.git
 $ cd js-libp2p-transfer-performance
 $ npm i
 $ npm start
+
+> js-libp2p-transfer-performance@1.0.0 start
+> node index.js
+
 testing 0.36.x
-104857600b in 1024b chunks in 600ms
-104857600b in 65536b chunks in 217ms
+105 MB in 1.02 kB chunks in 659ms
+105 MB in 10.2 kB chunks in 321ms
+105 MB in 32.8 kB chunks in 300ms
 ...
 ```
 

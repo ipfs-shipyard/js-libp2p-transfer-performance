@@ -2,19 +2,25 @@ import fs from 'fs'
 import { execa } from 'execa'
 import timeout from 'p-timeout'
 import defer from 'p-defer'
+import prettyBytes from 'pretty-bytes'
 
 const PROTOCOL = '/transfer-test/1.0.0'
-const TEST_TIMEOUT = Number(process.env.TIMEOUT || 30000)
+const TEST_TIMEOUT = Number(process.env.TIMEOUT || 60000)
 const dataLength = Number(process.env.DATA_LENGTH || (Math.pow(2, 20) * 100)) // how much data to send
-const chunkSizes = [ // chunk sizes for data
-  Math.pow(2, 10), // 1 KiB
-  Math.pow(2, 16), // 64 KiB
-  Math.pow(2, 17), // 128 KiB
-  Math.pow(2, 18), // 256 KiB
-  Math.pow(2, 20), // 1 MiB
+
+// chunk sizes for data
+const chunkSizes = []
+
+// 1 b - 1 MiB
+for (let i = 0; i < 20; i++) {
+  chunkSizes.push(Math.pow(2, i + 1))
+}
+
+// test over the multiplexer chunk size limit as well
+chunkSizes.push(
   Math.pow(2, 20) * 2, // 2 MiB
   Math.pow(2, 20) * 10 // 10 MiB
-]
+)
 
 const versions = [
   '0.36.x',
@@ -81,11 +87,11 @@ for (const version of versions) {
 
       results[chunkSize].push(time)
 
-      console.info(`${dataLength}b in ${chunkSize}b chunks in ${time}ms`)
+      console.info(`${prettyBytes(dataLength)} in ${prettyBytes(chunkSize)} chunks in ${time}ms`)
     } catch (err) {
       results[chunkSize].push('')
 
-      console.info(`${version}, ${chunkSize},`, err.message)
+      console.info(`${prettyBytes(dataLength)} in ${prettyBytes(chunkSize)} chunks - error:`, err.message)
     } finally {
       if (receiver != null) {
         receiver.kill()
@@ -99,12 +105,12 @@ for (const version of versions) {
 }
 
 const csvData = [
-  [ 'chunk size (b)', ...versions ].join(', ')
+  [ 'chunk size', ...versions ].join(', ')
 ]
 
 Object.entries(results).forEach(([chunkSize, averages]) => {
   csvData.push([
-    chunkSize,
+    chunkSize === '' ? '' : prettyBytes(Number(chunkSize)),
     ...averages
   ].join(', '))
 })
