@@ -11,9 +11,9 @@ const dataLength = Number(process.env.DATA_LENGTH || (Math.pow(2, 20) * 100)) //
 // chunk sizes for data
 const chunkSizes = []
 
-// 1 b - 1 MiB
-for (let i = 0; i < 20; i++) {
-  chunkSizes.push(Math.pow(2, i + 1))
+// 16 b - 1 MiB
+for (let i = 4; i <= 20; i++) {
+  chunkSizes.push(Math.pow(2, i))
 }
 
 // test over the multiplexer chunk size limit as well

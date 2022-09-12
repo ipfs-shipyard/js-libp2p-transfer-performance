@@ -20,7 +20,12 @@ const node = await createLibp2p({
   ],
   connectionEncryption: [
     new Plaintext()
-  ]
+  ],
+  config: {
+    nat: {
+      enabled: false
+    }
+  }
 })
 
 await node.start()

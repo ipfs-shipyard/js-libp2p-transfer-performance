@@ -16,6 +16,11 @@ const node = await libp2p.create({
     transport: [TCP],
     streamMuxer: [Mplex],
     connEncryption: [Insecure]
+  },
+  config: {
+    nat: {
+      enabled: false
+    }
   }
 })
 
