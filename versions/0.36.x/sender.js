@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import libp2p from 'libp2p'
 import Insecure from 'libp2p/src/insecure/plaintext.js'
 import Mplex from 'libp2p-mplex'

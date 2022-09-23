@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { createLibp2p } from 'libp2p'
 import { Plaintext } from 'libp2p/insecure'
 import { Mplex } from '@libp2p/mplex'

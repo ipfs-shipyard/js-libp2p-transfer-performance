@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { createLibp2p } from 'libp2p'
 import { Plaintext } from 'libp2p/insecure'
 import { Yamux } from '@chainsafe/libp2p-yamux'
