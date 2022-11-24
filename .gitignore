@@ -1,5 +1,5 @@
 package-lock.json
 node_modules
-results.csv
+*.csv
 .clinic
 *.log

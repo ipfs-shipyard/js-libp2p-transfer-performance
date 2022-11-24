@@ -1,0 +1,17 @@
+{
+  "name": "next-mplex",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@libp2p/mplex": "^7.0.4",
+    "@libp2p/tcp": "^6.0.4",
+    "libp2p": "0.40.0-fb5fa3d"
+  }
+}

@@ -5,7 +5,7 @@ import defer from 'p-defer'
 import prettyBytes from 'pretty-bytes'
 
 const PROTOCOL = '/transfer-test/1.0.0'
-const TEST_TIMEOUT = Number(process.env.TIMEOUT || 60000)
+const TEST_TIMEOUT = Number(process.env.TIMEOUT || 600000000)
 const dataLength = Number(process.env.DATA_LENGTH || (Math.pow(2, 20) * 100)) // how much data to send
 
 // chunk sizes for data
@@ -27,7 +27,11 @@ const versions = [
   '0.37.x',
   '0.38.x',
   '0.39.x-mplex',
-  '0.39.x-yamux'
+  '0.39.x-yamux',
+  '0.40.x-mplex',
+  '0.40.x-yamux',
+  'next-mplex',
+  'next-yamux'
 ]
 
 const results = {}
@@ -46,6 +50,8 @@ for (const version of versions) {
       let multiaddr
       const multiaddrPromise = defer()
       let time
+
+      //console.info(`PROTOCOL=${PROTOCOL} DATA_LENGTH=${dataLength} CHUNK_SIZE=${chunkSize} node ./versions/${version}/receiver.js`)
 
       receiver = execa('node', [`./versions/${version}/receiver.js`], {
         env: {
@@ -68,6 +74,8 @@ for (const version of versions) {
         milliseconds: TEST_TIMEOUT
       })
 
+      //console.info(`PROTOCOL=${PROTOCOL} DATA_LENGTH=${dataLength} CHUNK_SIZE=${chunkSize} RECEIVER_MULTIADDR=${multiaddr} node ./versions/${version}/sender.js`)
+
       sender = execa('node', [`./versions/${version}/sender.js`], {
         env: {
           DATA_LENGTH: dataLength,
@@ -77,6 +85,9 @@ for (const version of versions) {
         }
       })
 
+      sender.stdout.on('data', (buf) => {
+        console.error('sender', buf.toString().trim())
+      })
       sender.stderr.on('data', (buf) => {
         console.error('sender', buf.toString().trim())
       })
