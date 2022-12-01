@@ -5,22 +5,17 @@ import defer from 'p-defer'
 import prettyBytes from 'pretty-bytes'
 
 const PROTOCOL = '/transfer-test/1.0.0'
-const TEST_TIMEOUT = Number(process.env.TIMEOUT || 600000000)
-const dataLength = Number(process.env.DATA_LENGTH || (Math.pow(2, 20) * 100)) // how much data to send
+const TEST_TIMEOUT = Number(process.env.TIMEOUT ?? 600000000)
+const dataLength = Number(process.env.DATA_LENGTH ?? (Math.pow(2, 20) * 100)) // how much data to send
+const repeat = Number(process.env.TEST_REPEAT ?? 5)
 
 // chunk sizes for data
 const chunkSizes = []
 
-// 256 b - 1 MiB
-for (let i = 8; i <= 20; i++) {
+// 256 b - 2 MiB - important to test over the multiplexer chunk size limit
+for (let i = 8; i <= 21; i++) {
   chunkSizes.push(Math.pow(2, i))
 }
-
-// test over the multiplexer chunk size limit as well
-chunkSizes.push(
-  Math.pow(2, 20) * 2, // 2 MiB
-  Math.pow(2, 20) * 10 // 10 MiB
-)
 
 const versions = [
   '0.36.x',
@@ -45,73 +40,84 @@ for (const version of versions) {
 
     let receiver
     let sender
+    let time = Infinity
 
-    try {
-      let multiaddr
-      const multiaddrPromise = defer()
-      let time
+    // try each one 5 times and take the lowest value
+    for (let attempt = 0; attempt < repeat; attempt++) {
+      try {
+        let result
+        let multiaddr
+        const multiaddrPromise = defer()
 
-      //console.info(`PROTOCOL=${PROTOCOL} DATA_LENGTH=${dataLength} CHUNK_SIZE=${chunkSize} node ./versions/${version}/receiver.js`)
+        //console.info(`PROTOCOL=${PROTOCOL} DATA_LENGTH=${dataLength} CHUNK_SIZE=${chunkSize} node ./versions/${version}/receiver.js`)
 
-      receiver = execa('node', [`./versions/${version}/receiver.js`], {
-        env: {
-          DATA_LENGTH: dataLength,
-          PROTOCOL
+        receiver = execa('node', [`./versions/${version}/receiver.js`], {
+          env: {
+            DATA_LENGTH: dataLength,
+            PROTOCOL
+          }
+        })
+        receiver.stdout.on('data', (buf) => {
+          if (!multiaddr) {
+            multiaddrPromise.resolve(buf.toString().trim())
+          } else {
+            result = Number(buf.toString())
+          }
+        })
+        receiver.stderr.on('data', (buf) => {
+          console.error('receiver', buf.toString().trim())
+        })
+
+        multiaddr = await timeout(multiaddrPromise.promise, {
+          milliseconds: TEST_TIMEOUT
+        })
+
+        //console.info(`PROTOCOL=${PROTOCOL} DATA_LENGTH=${dataLength} CHUNK_SIZE=${chunkSize} RECEIVER_MULTIADDR=${multiaddr} node ./versions/${version}/sender.js`)
+
+        sender = execa('node', [`./versions/${version}/sender.js`], {
+          env: {
+            DATA_LENGTH: dataLength,
+            CHUNK_SIZE: chunkSize,
+            RECEIVER_MULTIADDR: multiaddr,
+            PROTOCOL
+          }
+        })
+
+        sender.stdout.on('data', (buf) => {
+          console.error('sender', buf.toString().trim())
+        })
+        sender.stderr.on('data', (buf) => {
+          console.error('sender', buf.toString().trim())
+        })
+
+        await timeout(receiver, {
+          milliseconds: TEST_TIMEOUT
+        })
+
+        // only take result if it is lower than previous tries
+        if (result < time) {
+          time = result
         }
-      })
-      receiver.stdout.on('data', (buf) => {
-        if (!multiaddr) {
-          multiaddrPromise.resolve(buf.toString().trim())
-        } else {
-          time = Number(buf.toString())
+      } catch (err) {
+        results[chunkSize].push('')
+
+        console.info(`${prettyBytes(dataLength)} in ${prettyBytes(chunkSize)} chunks - error:`, err.message)
+      } finally {
+        if (receiver != null) {
+          receiver.kill()
         }
-      })
-      receiver.stderr.on('data', (buf) => {
-        console.error('receiver', buf.toString().trim())
-      })
 
-      multiaddr = await timeout(multiaddrPromise.promise, {
-        milliseconds: TEST_TIMEOUT
-      })
-
-      //console.info(`PROTOCOL=${PROTOCOL} DATA_LENGTH=${dataLength} CHUNK_SIZE=${chunkSize} RECEIVER_MULTIADDR=${multiaddr} node ./versions/${version}/sender.js`)
-
-      sender = execa('node', [`./versions/${version}/sender.js`], {
-        env: {
-          DATA_LENGTH: dataLength,
-          CHUNK_SIZE: chunkSize,
-          RECEIVER_MULTIADDR: multiaddr,
-          PROTOCOL
+        if (sender != null) {
+          sender.kill()
         }
-      })
-
-      sender.stdout.on('data', (buf) => {
-        console.error('sender', buf.toString().trim())
-      })
-      sender.stderr.on('data', (buf) => {
-        console.error('sender', buf.toString().trim())
-      })
-
-      await timeout(receiver, {
-        milliseconds: TEST_TIMEOUT
-      })
-
-      results[chunkSize].push(time)
-
-      console.info(`${prettyBytes(dataLength)} in ${prettyBytes(chunkSize)} chunks in ${time}ms`)
-    } catch (err) {
-      results[chunkSize].push('')
-
-      console.info(`${prettyBytes(dataLength)} in ${prettyBytes(chunkSize)} chunks - error:`, err.message)
-    } finally {
-      if (receiver != null) {
-        receiver.kill()
-      }
-
-      if (sender != null) {
-        sender.kill()
       }
     }
+
+    const megs = dataLength / Math.pow(2, 20)
+    const secs = time / 1000
+
+    console.info(`${prettyBytes(dataLength)} in ${prettyBytes(chunkSize)} chunks in ${time}ms at ${Math.round(megs / secs)}MB/s`)
+    results[chunkSize].push(time)
   }
 }
 

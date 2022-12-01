@@ -14,7 +14,9 @@ const node = await createLibp2p({
     tcp()
   ],
   streamMuxers: [
-    mplex()
+    mplex({
+      minSendBytes: 2 << 12
+    })
   ],
   connectionEncryption: [
     plaintext()
