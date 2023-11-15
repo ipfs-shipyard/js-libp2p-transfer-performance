@@ -1,7 +1,8 @@
 import { createLibp2p } from 'libp2p'
 import { plaintext } from 'libp2p/insecure'
-import { mplex } from '@libp2p/mplex'
+import { yamux } from '@chainsafe/libp2p-yamux'
 import { tcp } from '@libp2p/tcp'
+import { multiaddr } from '@multiformats/multiaddr'
 
 let toSend = Number(process.env.DATA_LENGTH)
 const data = new Uint8Array(Number(process.env.CHUNK_SIZE))
@@ -14,9 +15,7 @@ const node = await createLibp2p({
     tcp()
   ],
   streamMuxers: [
-    mplex({
-      minSendBytes: 2 << 12
-    })
+    yamux()
   ],
   connectionEncryption: [
     plaintext()
@@ -30,7 +29,7 @@ const node = await createLibp2p({
 
 await node.start()
 
-const stream = await node.dialProtocol(process.env.RECEIVER_MULTIADDR, process.env.PROTOCOL)
+const stream = await node.dialProtocol(multiaddr(process.env.RECEIVER_MULTIADDR), process.env.PROTOCOL)
 
 await stream.sink(async function * () {
   while (toSend > 0) {

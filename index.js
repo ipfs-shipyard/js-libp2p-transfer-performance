@@ -25,8 +25,10 @@ const versions = [
   '0.39.x-yamux',
   '0.40.x-mplex',
   '0.40.x-yamux',
-  'next-mplex',
-  'next-yamux'
+  '0.45.x-mplex',
+  '0.45.x-yamux',
+  '0.46.x-mplex',
+  '0.46.x-yamux'
 ]
 
 const results = {}

@@ -1,5 +1,5 @@
 {
-  "name": "next-yamux",
+  "name": "0.45.x-mplex",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,8 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@chainsafe/libp2p-yamux": "^3.0.3",
-    "@libp2p/tcp": "^6.0.4",
-    "libp2p": "0.40.0-fb5fa3d"
+    "@libp2p/mplex": "^8.0.4",
+    "@libp2p/tcp": "^7.0.3",
+    "libp2p": "^0.45.9"
   }
 }

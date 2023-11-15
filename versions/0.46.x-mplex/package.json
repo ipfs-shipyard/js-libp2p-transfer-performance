@@ -1,5 +1,5 @@
 {
-  "name": "next-mplex",
+  "name": "0.46.x-mplex",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,8 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@libp2p/mplex": "^7.0.4",
-    "@libp2p/tcp": "^6.0.4",
-    "libp2p": "0.40.0-fb5fa3d"
+    "@libp2p/mplex": "^9.0.12",
+    "@libp2p/tcp": "^8.0.13",
+    "libp2p": "^0.46.0"
   }
 }
